@@ -1,0 +1,136 @@
+{"MNIST":{'Random':
+                {'scale':0, 
+                 'lam':0},
+             'ConfidenceBall1': 
+                {'scale':0.001, 
+                 'lam':0.2},
+             'LinUCB': 
+                {'scale':0.001, 
+                 'lam':0.2},
+             'ConfidenceBall1_FJLT': 
+                {'scale':0.0001,  
+                 'lam':0.2,
+                 'k':50
+                 },
+             'SOFUL_2m': 
+                {'scale': 0.1, 
+                 'lam': 20,
+                 'm':50},
+             'CBSCFD': 
+                {'lam': 2e-9,
+                 'm':50,
+                 'scale':0.1},
+              'CBRAP':
+                {'lam':0.2,
+                 'k':50,
+                 'scale':1e-5}
+                 },
+"Steam": {'Random':
+            {'scale':0, 
+             'lam':0},
+         'ConfidenceBall1': 
+            {'scale':0.01, 
+             'lam':0.001},
+         'LinUCB': 
+            {'scale':0.003, 
+             'lam':1000},
+         'ConfidenceBall1_FJLT': 
+            {'scale':0.1,  
+             'lam':2e-7,
+             'k':50
+             },
+         'SOFUL_2m': 
+            {'scale': 1, 
+             'lam': 2e-5,
+             'm':10},
+         'CBSCFD': 
+            {'lam': 2e-9,
+             'm':10,
+             'scale':0.1},
+          'CBRAP':
+            {'lam':2e-9 ,
+             'k':50,
+             'scale':0.1}
+             },
+"Movielens":{'Random':
+               {'scale':0, 
+                 'lam':0},
+             'ConfidenceBall1': 
+                {'scale':0.001, 
+                 'lam':2e-7},
+             'LinUCB': 
+                {'scale':0.1, 
+                 'lam':0.002},
+             'ConfidenceBall1_FJLT': 
+                {'scale':0.1,  
+                 'lam':2e-5,
+                 'k':50
+                 },
+             'SOFUL_2m': 
+                {'scale': 1, 
+                 'lam': 0.002,
+                 'm':10},
+             'CBSCFD': 
+                {'lam': 2e-7,
+                 'm':10,
+                 'scale':0.1},
+              'CBRAP':
+                {'lam':2e-5 ,
+                 'k':50,
+                 'scale':0.1}
+                 }, 
+"Amazon":{'Random':
+                 {'scale':0, 
+                   'lam':0},
+               'ConfidenceBall1': 
+                  {'scale':0.001, 
+                   'lam':2e-7},
+               'LinUCB': 
+                  {'scale':0.01, 
+                   'lam':2e-7},
+               'ConfidenceBall1_FJLT': 
+                  {'scale':0.01,  
+                   'lam':2e-7,
+                   'k':200
+                   },
+               'SOFUL_2m': 
+                  {'scale': 1, 
+                   'lam': 0.002,
+                   'm':50},
+               'CBSCFD': 
+                  {'lam': 2e-7,
+                   'm':50,
+                   'scale':0.1},
+                'CBRAP':
+                  {'lam':2e-7 ,
+                   'k':200,
+                   'scale':0.01}
+                   },
+"Yahoo":{'Random':
+                   {'scale':0, 
+                     'lam':0},
+                 'ConfidenceBall1': 
+                    {'scale':0.001, 
+                     'lam':2e-11},
+                 'LinUCB': 
+                    {'scale':0.01, 
+                     'lam':0.002},
+                 'ConfidenceBall1_FJLT': 
+                    {'scale':0.001,  
+                     'lam':2e-5,
+                     'k':100
+                     },
+                 'SOFUL_2m': 
+                    {'scale': 0.001, 
+                     'lam': 2e-5,
+                     'm':30},
+                 'CBSCFD': 
+                    {'lam': 0.002,
+                     'm':30,
+                     'scale':0.1},
+                  'CBRAP':
+                    {'lam':2e-7 ,
+                     'k':100,
+                     'scale':0.1}
+                     }               
+}
