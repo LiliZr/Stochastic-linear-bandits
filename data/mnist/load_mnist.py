@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 def load_mnist(path):
-    df = pd.read_csv(f'{path}/mnist_train.csv')
+    df = pd.read_csv(f'{path}')
     label = df['5']
     df.drop('5', inplace=True, axis=1)
     action_set = {}
