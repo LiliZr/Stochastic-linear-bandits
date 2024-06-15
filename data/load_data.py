@@ -50,7 +50,6 @@ def load_dataset(df_data=None, d=30, nb_actions=2000, name='Random', path='./dat
            reviews_x_items = pd.read_csv(path, sep=",", index_col=0)
            return [reviews_x_items]
         else:
-            print('else')
             reviews_x_items = df_data[0]
             theta, action_set, nb_actions, d = load_amazon(reviews_x_items, size_catalog=1000, seed=seed)
 
