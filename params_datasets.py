@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     ########################  load data  ###########################
     # Noise for rewards
-    sigma = 0.1
+    sigma = 0.
 
     theta, action_set, dfs_data, d, nb_actions = None, None, None, None, None
     for dataset in datasets:
