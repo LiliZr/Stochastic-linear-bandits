@@ -1,6 +1,4 @@
-import tracemalloc
 from algorithms.baseline.LinearRegression import *
-import scipy
 
 class LinearRegression_CBSCFD(LinearRegression):
     def __init__(self, theta, lam=0.0001, sigma=0.1, delta=0.01, 
@@ -72,8 +70,10 @@ class LinearRegression_CBSCFD(LinearRegression):
 ############################################################  
 
 class CBSCFD(LinearRegression_CBSCFD):
-    def recommend(self):
-        # Compute UCB for each action
+    def recommend_loop(self):
+        """
+             Initial Implementation using for loop
+        """
         beta = self.scale * ((self.sigma * np.sqrt((2 * np.log10(1/self.delta))
                                      + (self.m * np.log10(1 + (self.t / (self.m * self.lam))))
                                      + (self.d * np.log10(1 + ((self.alpha - self.lam) / self.lam)))))
@@ -84,6 +84,7 @@ class CBSCFD(LinearRegression_CBSCFD):
         self.selected_action_idx = 0
         HZa = np.zeros(self.H.shape[0])
         ZtHZa = np.zeros(self.Z.shape[1])
+        # Compute UCB for each action
         for idx, a in enumerate(self.action_set):
             np.matmul(self.Z, a, out=HZa)
             np.matmul(self.H, HZa, out=HZa)
@@ -95,3 +96,44 @@ class CBSCFD(LinearRegression_CBSCFD):
                 a_max = a
                 self.selected_action_idx = idx
         return a_max
+    
+
+    def recommend_matmul(self):
+        """
+            Implementation using matrix multiplication with einsum 
+        """
+        beta = self.scale * ((self.sigma * np.sqrt((2 * np.log10(1/self.delta))
+                                     + (self.m * np.log10(1 + (self.t / (self.m * self.lam))))
+                                     + (self.d * np.log10(1 + ((self.alpha - self.lam) / self.lam)))))
+                + np.sqrt(self.alpha))
+            
+
+
+        # Compute intermediate results
+        Z_A_T = self.Z  @ self.action_set.T                   # (m, n) = (m, d) @ (d, n)
+        H_Z_A_T = self.H  @ Z_A_T                             # (m, n) = (m, m) @ (m, n)
+        Z_T_H_Z_A_T = (self.Z.T @ H_Z_A_T).T                  # (n, d) = ((d, m) @ (m, n))^T
+        Vinv_A = (1 /  self.alpha ) * (self.action_set - Z_T_H_Z_A_T)  # (n, d)
+
+        # Compute UCB values
+        A_Theta = self.action_set @ self.theta_est                    # (n)
+        A_Vinv_A = np.einsum('ij,ij->i', self.action_set, Vinv_A)     # Diagonal of (A @ Vinv_A)
+        sqrt_A_Vinv_A = np.sqrt(A_Vinv_A)   
+        ucb_values = A_Theta + (beta * sqrt_A_Vinv_A)  
+
+        # find the maximum UCB value and corresponding index
+        ucb_values = np.round(ucb_values, decimals=5)
+        ucb_max_idx = np.argmax(ucb_values)
+        # if self.t == 0: print(ucb_values[120], ucb_values[1041])
+        ucb_max = ucb_values[ucb_max_idx]
+
+        # retrieve the corresponding action
+        a_max = self.action_set[ucb_max_idx]
+        self.selected_action_idx = ucb_max_idx
+
+        return a_max
+    
+    def recommend(self):
+        # a = self.recommend_matmul()
+        a = self.recommend_loop()
+        return a
