@@ -19,7 +19,7 @@ def load_dataset(df_data=None, d=30, nb_actions=2000, name='Random', path='./dat
     elif name == 'Movielens':
         path += 'movielens_25m/data/'
         contextual_arms = np.load(path + 'contextual_arms.zip', allow_pickle=True)['contextual_arms'].astype(np.float64)
-        rewards = np.load(path + 'rewards.zip', allow_pickle=True)['contextual_arms'].astype(np.float64)
+        rewards = np.load(path + 'rewards.zip', allow_pickle=True)['rewards'].astype(np.float64)
         action_set = list(zip(contextual_arms, rewards))
         nb_actions, d = contextual_arms[0].shape 
     elif name == 'Steam':
