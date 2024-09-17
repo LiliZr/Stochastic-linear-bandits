@@ -7,11 +7,11 @@ from visualizations.plots import *
 
 
 # PATH to results 
-PATH = './results/parameters/'
+PATH = './results/Contextual/'
 
 # Datasets and models to test
-datasets = ['Amazon', 'Steam']
-models_to_test = [Random, ConfidenceBall1_FJLT]
+datasets = ['Movielens']
+models_to_test = [CBSCFD, CBRAP, ConfidenceBall1_FJLT, ]
 
 
 # Hyperparameters of each model
@@ -26,12 +26,12 @@ params_models = {'ConfidenceBall1': ['scale', 'lam'],
                     'Random':[]
                     }
 
-sketch_dim = [30]
-projected_dim = [200]
+# Parameters models to test
+sketch_dim = [10]
+projected_dim = [50]
 
-scale_s = [10**i for i in range(-2, 0)]
-lam_s = [2*10**i for i in range(-11, -2, 2)]
-
+scale_s = [10**i for i in range(-3, -4, -1)]
+lam_s = [2*10**i for i in range(-5, -2, 2)]
 
 
 params_values = {
@@ -40,17 +40,18 @@ params_values = {
     'lam':lam_s,
     'k':projected_dim,
 }
-datasets_with_init = ['Movielens', 'Steam', 'Amazon', 'Yahoo']
+
+# Parameters of expermient
+# Time limit (in sec) for cpu computations
+time_limit = 50000
+# Max iterations
+T = 3000 
+# Number of runs (To approximate in expectation) and seeds
+nb_runs = 20  
+loop_RP = 1
 
 if __name__ == "__main__":
     ######################## General Params ###########################
-    # Time limit (in sec)
-    time_limit = 50000
-    # Max iterations
-    T = 2500
-    # Number of runs (To approximate in expectation) and seeds
-    nb_runs = 50
-    loop_RP = 4
     seeds = np.arange(nb_runs)
     seed_data = 12
 
@@ -58,15 +59,10 @@ if __name__ == "__main__":
     # Noise for rewards
     sigma = 0.1
 
-    print('### Loading data ###')
     theta, action_set, dfs_data, d, nb_actions = None, None, None, None, None
     for dataset in datasets:
-        # Load dataset 
-        if dataset in datasets_with_init:
-            dfs_data = load_dataset(name=dataset, init=True)
-        else:
-            d, nb_actions = 2000, 1000 # For Random synthetic dataset
-            theta, action_set, nb_actions, d = load_dataset(d=d, nb_actions=nb_actions, name=dataset, seed=seed_data)
+        print(f'### Loading data {dataset} ###')
+        theta, action_set, nb_actions, d = load_dataset(df_data=dfs_data, nb_actions=nb_actions, name=dataset, seed=seed_data, )
 
         nb_runs_ = None
         loop_RP_ = None
@@ -82,7 +78,7 @@ if __name__ == "__main__":
                 for p in params_models[model_.__name__ ]:
                     params_model[p] = params_values[p]
                 for vals in product(*params_model.values()):
-                    try:
+                   try:
                         params = dict(zip(params_model, vals))
                         params_str = ''.join([f'_{key}={value}' for key, value in params.items()])
                         print(model_, params_str)
@@ -100,10 +96,6 @@ if __name__ == "__main__":
 
                         for i in range(nb_runs_):
                             print(f'{dataset}____It {i}___{params_str}')
-                            if dataset in datasets_with_init:
-                                # Get new action set of new user at each run
-                                theta, action_set, nb_actions, d = load_dataset(df_data=dfs_data, name=dataset, seed=seeds[i])
-                            
                             # Optimal model
                             optimal = Optimal(theta, action_set=action_set, seed=seeds[i])
                             optimal.run(T, time_limit=time_limit)
@@ -138,11 +130,11 @@ if __name__ == "__main__":
 
                         plot_save_intermediate_results(results, params_exp, params_models=params_,
                                                                         PATH=PATH, params_comparison=True, )
-                    except Exception as e:
-                        with open(f"logs/log_{dataset}_{model_.__name__}.txt", "a") as f:
-                            f.write(dataset + '\n' + model_.__name__ + '\n' + params_str + '\n')
-                            f.write(str(e))
-                            f.write('#############\n')
-                        print(dataset + '\n' + model_.__name__ + '\n' + params_str + '\n')
-                        print(e)
-                        pass
+                   except Exception as e:
+                       with open(f"logs/log_{dataset}_{model_.__name__}.txt", "a") as f:
+                           f.write(dataset + '\n' + model_.__name__ + '\n' + params_str + '\n')
+                           f.write(str(e))
+                           f.write('#############\n')
+                       print(dataset + '\n' + model_.__name__ + '\n' + params_str + '\n')
+                       print(e)
+                       pass
