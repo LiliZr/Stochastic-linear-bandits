@@ -5,7 +5,7 @@ from visualizations.plots import *
 
 
 # PATH to results 
-PATH = './results/parameters/'
+PATH = './results/Contextual/'
 
 
 # Datasets and models to test
@@ -49,6 +49,8 @@ if __name__ == "__main__":
         path_results = path_to_results(dataset, sub_path(d, sigma, nb_actions, T, dataset, nb_runs))
         # Plot regret, cpu and wall time over iterations (using best parameters)
         plot_best_results(PATH=PATH + path_results, dataset=dataset, **dims_dataset[dataset])
+        # Plot ctr
+        plot_ctr(PATH=PATH + path_results, dataset=dataset, **dims_dataset[dataset])
         # Plot regret over parameters scale (ellipsoid) and lambda (regularization)
         plot_over_param(PATH + path_results, dataset, param='scale', **dims_dataset[dataset])
         plot_over_param(PATH + path_results, dataset, param='lam', **dims_dataset[dataset])
