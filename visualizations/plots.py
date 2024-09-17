@@ -578,25 +578,6 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
 
 
-    # #### Scatter interactive plot
-    # if plot_3d:
-    #     for key in ['Random', 'LinUCB', 'ConfidenceBall1']:
-    #         if key in scatter:
-    #             del scatter[key]
-    #     df = pd.DataFrame.from_dict(scatter, orient='index')
-    #     df['model'] = df.index
-    #     df = df.explode(['CPU_Time (s)', 'Memory_Peak (MiB)', 'Cumulative_Regret', 'yerr'])
-    #     df = df.explode(['CPU_Time (s)', 'Memory_Peak (MiB)', 'Cumulative_Regret', 'yerr'])
-    #     fig = px.scatter_3d(df, x='CPU_Time (s)', log_x=True,
-    #                             y='Memory_Peak (MiB)', 
-    #                             z='Cumulative_Regret', error_z='yerr',
-    #                             color='model')
-    #     fig.update_scenes(xaxis_autorange="reversed")
-    #     fig.update_scenes(yaxis_autorange="reversed")
-    #     fig.show()
-
-
-
 def plot_over_param(PATH, dataset, param='scale', k=projected_dim, m=sketch_dim,):
     """
         Plot cumulative regret variations for each model over a certain parameter
@@ -947,3 +928,199 @@ def latex_memory(results, PATH='./', init=False):
     f.write(string)
     f.close()
         
+
+
+
+
+def plot_ctr(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=False):
+    """
+        Plot best results in terms of cumulative regret (smaller value), cpu and wall time for 
+      each model given a dataset and sketch/projection dimesions
+    """
+    # Get models to plot/ not to plot
+    list_models_to_not_plot = list_models_to_not_plot_s[dataset]
+    
+    # Possible values of k and m
+    sketched_dim = list(np.arange(10, 205, 10))
+    sketched_dim_copy = sketched_dim.copy()
+
+    # Get list of models in specified path
+    models_names = [f for f in os.listdir(PATH) if os.path.isdir(os.path.join(PATH, f))]
+    if 'ConfidenceBall1' in models_names and 'LinUCB' in models_names and 'Random' in models_names:
+        idx = models_names.index('ConfidenceBall1')
+        models_names[idx], models_names[-1] = models_names[-1], models_names[idx]
+        idx = models_names.index('LinUCB')
+        models_names[idx], models_names[-2] = models_names[-2], models_names[idx]
+        idx = models_names.index('Random')
+        models_names[idx], models_names[-3] = models_names[-3], models_names[idx]
+    T=None
+    nb_actions=None
+
+    # Init variables
+    regret_mean_over_t = {model_name: [] for model_name in models_names}
+    regret_std_over_t = {model_name: [] for model_name in models_names}
+    time_cpu_over_t = {model_name: [] for model_name in models_names}
+    time_wall_over_t = {model_name: [] for model_name in models_names}
+    reward_mean_over_t = {model_name: [] for model_name in models_names}
+    reward_std_over_t = {model_name: [] for model_name in models_names}
+    memory_over_t = {model_name: [] for model_name in models_names}
+    label_over_t = {model_name: [] for model_name in models_names}
+    memory_init = {model_name: 0 for model_name in models_names}
+
+
+
+
+
+    for model_name in models_names:
+        ##### Baseline models (that don't change with parameter m or k)
+        if model_name in ['Random', 'LinUCB', 'ConfidenceBall1']:
+            try: 
+                PATH_ =  f'{PATH}{model_name}/json/'
+                best_file = sorted(gb.glob(PATH_ + '*.json'),  key=numerical_sort)[0]
+                f = open(best_file)
+                data = json.load(f)
+                T, d, sigma, nb_actions = data['T'], data['d'], data['sigma'], data['nb_actions']
+                data = data['results']
+
+                # Store values
+                regret_mean_over_t[model_name] = np.array(data[model_name]['regret_mean'])
+                regret_std_over_t[model_name] = np.array(data[model_name]['regret_std'])
+                reward_mean_over_t[model_name] = np.array(data[model_name]['reward_mean'])
+                reward_std_over_t[model_name] = np.array(data[model_name]['reward_std'])
+                key_time_cpu = 'time_cpu_mean' if 'time_cpu_mean' in data[model_name].keys() else 'time_mean'
+                time_cpu_over_t[model_name] = np.array(data[model_name][key_time_cpu])  
+                time_wall_over_t[model_name] = np.array(data[model_name]['time_wall_mean']) if 'time_wall_mean' in data[model_name].keys() else None
+                label_over_t[model_name] = data[model_name]['label']
+                memory_over_t[model_name] = np.array(data[model_name]['memory_max'])
+                memory_init[model_name] = memory_over_t[model_name][0]
+
+                f.close()
+            except Exception as e:
+                print(model_name, e)
+                pass
+
+        ###### Other models
+        else:
+
+            box_plot_dim, models_box_plot_dim = [], []
+            for new_dim in sketched_dim_copy:
+                try:
+                    PATH_ =  f'{PATH}{model_name}/{new_dim}/json/'
+                    best_file = sorted(gb.glob(PATH_ + '*.json'),  key=numerical_sort)[0]
+                    f = open(best_file)
+                    data = json.load(f)
+                    T, d, sigma, nb_actions = data['T'], data['d'], data['sigma'], data['nb_actions']
+                    data = data['results']
+
+                    ### For plotting for various m or k
+                    model_label = data[model_name]['label']
+                    regret_mean_model = np.array(data[model_name]['regret_mean'])
+                    regret_std_model = np.array(data[model_name]['regret_std'])
+                    key_time_cpu = 'time_cpu_mean' if 'time_cpu_mean' in data[model_name].keys() else 'time_mean'
+                    time_cpu_model = np.array(data[model_name][key_time_cpu])
+                    time_wall_model = np.array(data[model_name]['time_wall_mean']) if 'time_wall_mean' in data[model_name].keys() else None
+                    reward_mean_model = np.array(data[model_name]['reward_mean'])
+                    reward_std_model = np.array(data[model_name]['reward_std'])
+                    memory_model = np.array(data[model_name]['memory_max'])
+                    memory_init[model_name] = memory_model[0]
+
+                    try:
+                        models_box_plot_dim.append(f"m={data[model_name]['params']['m']}")
+                    except:
+                        models_box_plot_dim.append(f"k={data[model_name]['params']['k']}")
+
+                    corresponding_dim = k if model_name in ['CBRAP', 'ConfidenceBall1_FJLT'] else m
+                    if new_dim == corresponding_dim:
+
+                        ### Plot over t with chosen m
+                        regret_mean_over_t[model_name] = regret_mean_model
+                        regret_std_over_t[model_name] = regret_std_model
+                        reward_mean_over_t[model_name] = reward_mean_model
+                        reward_std_over_t[model_name] =  reward_std_model
+                        time_cpu_over_t[model_name] = time_cpu_model
+                        time_wall_over_t[model_name] = time_wall_model
+                        label_over_t[model_name] = model_label
+                        memory_over_t[model_name] = memory_model
+
+                    f.close()
+                except Exception as e:
+                    print(model_name, new_dim, e)
+                    if new_dim in sketched_dim:
+                        sketched_dim.remove(new_dim)
+
+
+
+
+    ######################## Plots ########################
+    # Figure 1: Plot over iterations
+    fig_all, (ax1_all, ax2_all,) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Get max cpu time
+    times = []
+    for model in ['CBRAP', 'ConfidenceBall1_FJLT', 'CBSCFD', 'SOFUL_2m']:
+        if model in time_cpu_over_t.keys():
+            times.append(time_cpu_over_t[model][~np.isnan(time_cpu_over_t[model])][-1])
+    max_time = max(times) if times != [] else float('+inf')
+    time_step = np.arange(T)
+    values = []
+    for _, model_name in enumerate(models_names):
+        # try:
+            cumulated_rewards = reward_mean_over_t[model_name]
+            rewards = cumulated_rewards - np.insert(cumulated_rewards[:-1], 0, 0)
+            values.append(np.mean(rewards))
+    threshold = np.median(values)
+    for _, model_name in enumerate(models_names):
+        # try:
+            print(model_name)
+            print(reward_mean_over_t[model_name][:3], reward_mean_over_t[model_name][-3:])
+            cumulated_rewards = reward_mean_over_t[model_name]
+            rewards = cumulated_rewards
+
+            rewards /= (np.arange(T)+1)
+            # Cut plots if algorithm didn't stop at time limit
+            if dataset != 'MNIST':
+                time_wall_over_t[model_name][time_cpu_over_t[model_name] > max_time] = np.nan
+                reward_mean_over_t[model_name][time_cpu_over_t[model_name] > max_time] = np.nan
+                time_cpu_over_t[model_name][time_cpu_over_t[model_name] > max_time] = np.nan
+
+            if model_name not in list_models_to_not_plot:
+                ax1_all.plot(time_step, rewards, label=label_over_t[model_name], color=colors[model_name], marker=markers[model_name], markersize=5, markevery=int(spacing[model_name]*T/10), alpha=0.9)
+                # ax1_all.fill_between(time_step, np.array(reward_mean_over_t[model_name]) - np.array(regret_std_over_t[model_name]), 
+                #                                  np.array(reward_mean_over_t[model_name]) + np.array(regret_std_over_t[model_name]), alpha=0.2, color=colors[model_name])
+
+            ### CPU time
+            idx_last = np.sum(~np.isnan(time_cpu_over_t[model_name]))-1
+            time_last = np.round(time_cpu_over_t[model_name][~np.isnan(time_cpu_over_t[model_name])][-1], decimals=2)
+            ax2_all.plot(time_step, time_cpu_over_t[model_name], label=f'{label_over_t[model_name]} | {time_last}s', color=colors[model_name], marker=markers[model_name], markersize=5, markevery=int(spacing[model_name]*T/10), alpha=0.9)
+            ax2_all.scatter(idx_last, time_last, marker='X', color=colors[model_name])
+            
+
+        # except Exception as e:
+        #     print(e)
+        #     pass
+
+
+
+    #### Figure 1
+    ax1_all.set_title(f'Click Through Rate')
+    ax1_all.set_xlabel('T')
+    ax1_all.set_ylabel('Click Through Rate')
+    # ax1_all.set_yscale('log')
+    # ax1_all.set_xlim(left=1)
+    # ax1_all.set_ylim(bottom=1)
+    ax1_all.grid(linestyle = '--', linewidth = 0.5)
+    ax1_all.legend()  
+
+    ax2_all.set_title(f'CPU Time')
+    ax2_all.set_xlabel('T')
+    ax2_all.set_ylabel('Time (sec)')
+    ax2_all.set_yscale('log')
+    ax2_all.grid(linestyle = '--', linewidth = 0.5)
+    ax2_all.legend()  
+
+    fig_all.tight_layout(pad=3)
+    fig_all.suptitle('Evolution of Click Through Rate', fontsize=14)
+    fig_all.savefig(PATH + 'plot_ctr.pdf', format="pdf")
+
+
+
