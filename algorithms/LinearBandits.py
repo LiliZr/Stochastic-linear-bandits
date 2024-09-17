@@ -41,6 +41,8 @@ class LinearBandit():
         self.L = 1
         self.m2 = 1
         self.max_r, self.min_r = None, None
+        self.contextual = False
+        self.contextual_arms_rewards = None
 
         # If an action set is given 
         if action_set is not None:
@@ -54,6 +56,14 @@ class LinearBandit():
             elif type(action_set) is tuple:
                 self.action_set, self.rewards = action_set
                 self.d = self.action_set.shape[1]
+            elif type(action_set) is list:
+                # Choose context randomly
+                self.contextual_arms_rewards = action_set
+                i = self.rng.randint(0, len(self.contextual_arms_rewards)-1)
+                self.action_set = self.contextual_arms_rewards[i][0]
+                self.rewards = self.contextual_arms_rewards[i][1]
+                self.d = self.action_set.shape[1]
+                self.contextual = True
             else:
                 self.set_size = len(action_set) 
                 self.d = self.action_set.shape[1]
@@ -69,7 +79,8 @@ class LinearBandit():
         if self.action_set_dict is not None:
             r = 1 if self.target == self.selected_action_idx else 0
         elif self.rewards is not None:
-            r = self.rewards[self.selected_action_idx] + (self.rng.randn() * self.sigma)
+            # r = self.rewards[self.selected_action_idx] + (self.rng.randn() * self.sigma)
+            r = self.rewards[self.selected_action_idx]
         else:
             r_estimated_mean = ((self.theta @ a_t) - self.min_r) / (self.max_r - self.min_r)
             r = r_estimated_mean + (self.rng.randn() * self.sigma)
@@ -110,12 +121,17 @@ class LinearBandit():
         if self.sample_action_set:
             self.action_set = []
             for i in range(self.nb_classes):
-                idx = self.rng.randint(self.action_set_dict[str(i)].shape[0])
+                idx = self.rng.randint(self.action_set_dict[str(i)].shape[0]-1)
                 sample = self.action_set_dict[str(i)][idx]
                 self.action_set.append(sample)
             self.action_set = np.array(self.action_set)
             # Normalize
             self.action_set = self.action_set / np.linalg.norm(self.action_set, 2, axis=1)[:, None]
+            updated = True
+        elif self.contextual:
+            # Choose context
+            i = self.rng.randint(len(self.contextual_arms_rewards)-1)
+            self.action_set, self.rewards = self.contextual_arms_rewards[i]
             updated = True
         return updated
 

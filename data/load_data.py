@@ -5,6 +5,7 @@ from data.steam.load_steam import *
 from data.amazon.load_amazon import *
 from data.yahoo.load_yahoo import *
 
+
 def load_dataset(df_data=None, d=30, nb_actions=2000, name='Random', path='./data/', finite_set=True, seed=12, init=False):
     rng = np.random.RandomState(seed)
     theta, action_set = None, None
@@ -16,34 +17,25 @@ def load_dataset(df_data=None, d=30, nb_actions=2000, name='Random', path='./dat
         path += 'mnist/data/mnist.zip'
         action_set, nb_actions, d = load_mnist(path)
     elif name == 'Movielens':
-        path += 'movielens_25m/data/movielens.zip'
-        if init:
-            data = pd.read_csv(path, sep=",", index_col=0)
-            return [data]
-        else:
-            df_data = df_data[0]
-            ### One hot encoding of users
-            action_set, nb_actions, d = get_movies(df_data, seed)
-
+        path += 'movielens_25m/data/'
+        contextual_arms = np.load(path + 'contextual_arms.zip', allow_pickle=True)['contextual_arms'].astype(np.float64)
+        rewards = np.load(path + 'rewards.zip', allow_pickle=True)['contextual_arms'].astype(np.float64)
+        action_set = list(zip(contextual_arms, rewards))
+        nb_actions, d = contextual_arms[0].shape 
     elif name == 'Steam':
         path += 'steam/data'
-        if init:
-            recommendations = pd.read_csv(f'{path}/steam_links.zip')
-            games_vectors = pd.read_csv(f'{path}/steam_actions.zip')
-            return [recommendations, games_vectors]
-        else:
-            recommendations, games_vectors = df_data
-            theta, action_set, nb_actions, d = load_steam(recommendations, games_vectors, size_catalog=nb_actions, seed=seed)
-
+        recommendations = pd.read_csv(f'{path}/steam_links.zip')
+        games_vectors = pd.read_csv(f'{path}/steam_actions.zip')
+        action_set, nb_actions, d = load_steam(recommendations, games_vectors, seed=seed)
+        for i, user in enumerate(action_set):
+            print(i, np.sum(user[1]))
+        print('####################')
     elif name == 'Yahoo':
         path += 'yahoo/data/yahoo.zip'
-        if init:
-           reviews_x_items = pd.read_csv(path, sep=",", index_col=0)
-           return [reviews_x_items]
-        else:
-            reviews_x_items = df_data[0]
-            theta, action_set, nb_actions, d = load_yahoo(reviews_x_items, seed=seed)
+        reviews_x_items = pd.read_csv(path, sep=",", index_col=0)
+        action_set, nb_actions, d = load_yahoo(reviews_x_items)
 
+        nb_actions, d = action_set[0][0].shape 
     elif name == 'Amazon':
         path += 'amazon/data/amazon.zip'
         if init:
