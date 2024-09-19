@@ -24,7 +24,10 @@ class ConfidenceBall1_FJLT(LinearRegression_FJLT):
             # Compute UCB for each action
             ucb = self.action_set_proj @ (ext + self.theta_est).T
             # Get the action with highest UCB
-            self.selected_action_idx, _ = np.unravel_index(np.argmax(ucb, axis=None), ucb.shape)
+            flat_idx = np.argmax(ucb)
+            # Convert the flat index back to a tuple of indices
+            self.selected_action_idx = np.unravel_index(flat_idx, ucb.shape)[0]
+
             return self.action_set_proj[self.selected_action_idx], self.action_set[self.selected_action_idx]
 
         ##### L2 unit ball case 
