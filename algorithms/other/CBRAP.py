@@ -89,8 +89,10 @@ class CBRAP(LinearRegression_CBRAP):
         """
         beta = self.scale * ((self.sigma * np.sqrt(self.d * np.log10((1 + self.t) / self.delta))) + np.sqrt(self.lam) + 1)
         # Compute UCB for each action
-        A_Theta = self.action_set_proj @ self.theta_est                  
-        A_Vinv_A = np.einsum('ij,jk,ik->i', self.action_set_proj, self.Vinv, self.action_set_proj)  # get diagonal of (A @ V @ A^T) Of size n 
+        A_Theta = self.action_set_proj @ self.theta_est
+        # Line below more efficient than : np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
+        A_Vinv_A = np.einsum('ij,ij->i', self.action_set_proj,  self.action_set_proj @ self.Vinv.T)  # get diagonal of (A @ Vinv @ A^T) Of size n 
+
         sqrt_A_Vinv_A = np.sqrt(A_Vinv_A)  
         ucb_values = A_Theta + beta * sqrt_A_Vinv_A
 
@@ -105,6 +107,6 @@ class CBRAP(LinearRegression_CBRAP):
         return a_proj_max, a_max
 
     def recommend(self):
-        # a = self.recommend_matmul()
-        a = self.recommend_loop()
+        a = self.recommend_matmul()
+        # a = self.recommend_loop()
         return a
