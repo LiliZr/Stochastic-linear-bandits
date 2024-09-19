@@ -108,23 +108,25 @@ class CBSCFD(LinearRegression_CBSCFD):
                 + np.sqrt(self.alpha))
             
 
-
+        Vinv_A = np.zeros(self.action_set.shape)                            # (n, d)
+        H_Z_A_T = np.zeros((self.Z.shape[0], self.action_set.shape[0]))     # (m, n)
         # Compute intermediate results
-        Z_A_T = self.Z  @ self.action_set.T                   # (m, n) = (m, d) @ (d, n)
-        H_Z_A_T = self.H  @ Z_A_T                             # (m, n) = (m, m) @ (m, n)
-        Z_T_H_Z_A_T = H_Z_A_T.T @ self.Z                 # (n, d) = ((d, m) @ (m, n))^T
-        Vinv_A = (1 /  self.alpha ) * (self.action_set - Z_T_H_Z_A_T)  # (n, d)
+        np.matmul(self.Z, self.action_set.T, out = H_Z_A_T)
+        np.matmul(self.H, H_Z_A_T, out = H_Z_A_T)
+        np.matmul(H_Z_A_T.T, self.Z, out=Vinv_A)
+        np.subtract(self.action_set, Vinv_A, out = Vinv_A )
+        Vinv_A *= (1 / self.alpha )
 
         # Compute UCB values
-        A_Theta = self.action_set @ self.theta_est                    # (n)
-        A_Vinv_A = np.einsum('ij,ij->i', self.action_set, Vinv_A)     # Diagonal of (A @ Vinv_A)
+        # Line below more efficient than : np.diagonal (self.action_set @ Vinv @ self.action_set^T)            
+        A_Vinv_A = np.einsum('ij,ij->i', self.action_set, Vinv_A)          # (n) : Diagonal of (A @ Vinv_A.T)
+        A_Theta = self.action_set @ self.theta_est                         # (n)
         sqrt_A_Vinv_A = np.sqrt(A_Vinv_A)   
         ucb_values = A_Theta + (beta * sqrt_A_Vinv_A)  
 
         # find the maximum UCB value and corresponding index
         ucb_values = np.round(ucb_values, decimals=5)
         ucb_max_idx = np.argmax(ucb_values)
-        # if self.t == 0: print(ucb_values[120], ucb_values[1041])
         ucb_max = ucb_values[ucb_max_idx]
 
         # retrieve the corresponding action
@@ -134,6 +136,6 @@ class CBSCFD(LinearRegression_CBSCFD):
         return a_max
     
     def recommend(self):
-        # a = self.recommend_matmul()
-        a = self.recommend_loop()
+        a = self.recommend_matmul()
+        # a = self.recommend_loop()
         return a
