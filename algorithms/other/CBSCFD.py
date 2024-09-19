@@ -112,7 +112,7 @@ class CBSCFD(LinearRegression_CBSCFD):
         # Compute intermediate results
         Z_A_T = self.Z  @ self.action_set.T                   # (m, n) = (m, d) @ (d, n)
         H_Z_A_T = self.H  @ Z_A_T                             # (m, n) = (m, m) @ (m, n)
-        Z_T_H_Z_A_T = (self.Z.T @ H_Z_A_T).T                  # (n, d) = ((d, m) @ (m, n))^T
+        Z_T_H_Z_A_T = H_Z_A_T.T @ self.Z                 # (n, d) = ((d, m) @ (m, n))^T
         Vinv_A = (1 /  self.alpha ) * (self.action_set - Z_T_H_Z_A_T)  # (n, d)
 
         # Compute UCB values
