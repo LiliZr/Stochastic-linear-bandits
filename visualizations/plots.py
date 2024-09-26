@@ -845,7 +845,7 @@ def results_memory(PATH, k=50, m=10):
                     if new_dim == corresponding_dim:
                         label_over_t[model_name] = model_label
                         max_memory[model_name] = memory_model
-                        print(model_name, memory_model)
+                        print('Max Memory of ', model_name, memory_model)
 
                     f.close()
                 except Exception as e:
@@ -1123,4 +1123,156 @@ def plot_ctr(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=False):
     fig_all.savefig(PATH + 'plot_ctr.pdf', format="pdf")
 
 
+##############################################
+#        DEBUGGING PLOT FUNCTIONS            #
+##############################################
 
+def plot_memory_test(results, PATH='./', init=False):
+    """
+        Bar plot of memory usage with models grouped together and datasets differentiated by color shade
+    """
+    label = 'init_mem' if init else 'max_mem'
+    title_file = 'Initial' if init else 'Maximum'
+    title = 'at initialization' if init else 'during iterations'
+
+    datasets = list(results.keys())  
+    models_dataset = [list(results[dataset][label].keys()) for dataset in datasets]
+    models = reduce(np.intersect1d, models_dataset)  # Only models common to all datasets
+    
+
+    size = 0.08 
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    res = {}
+    for dataset in datasets:
+        res[dataset] = {model: results[dataset][label].get(model, 0) for model in models}
+    model_idx = np.arange(len(models))
+    spc_idx = np.array([i * size for i in range(len(datasets))])
+
+    # Plot bars for each model
+    for i, model in enumerate(models):
+        for j, dataset in enumerate(datasets):
+            values = res[dataset][model] if model in res[dataset] else 0
+            x = model_idx[i] + spc_idx[j]
+            ax.bar(x, values, size, label=f'{model}_{dataset}', alpha=((j+1)/2), color=colors[model])
+
+    ax.set(xticks=model_idx + size * (len(datasets) / 2), xticklabels=models)
+    ax.set_ylabel("Peak memory (MiB)")
+    ax.set_yscale("log")
+    ax.set_title(f"Peak of memory allocation {title}")
+    ax.grid(linestyle='--', linewidth=0.5)
+    ax.legend( loc='upper center', fancybox=True, shadow=True, ncol=4)
+
+    # Save the plot to file
+    fig.savefig(PATH + title_file + '_memory_test.pdf', format='pdf')
+
+
+def results_time(PATH, k=50, m=10):
+    """
+        Get time each model given a dataset (Path)
+    """
+    ### Get list of models in specified path
+    models_names = [f for f in os.listdir(PATH) if os.path.isdir(os.path.join(PATH, f))]
+    if 'ConfidenceBall1' in models_names and 'LinUCB' in models_names and 'Random' in models_names:
+        idx = models_names.index('ConfidenceBall1')
+        models_names[idx], models_names[-1] = models_names[-1], models_names[idx]
+        idx = models_names.index('LinUCB')
+        models_names[idx], models_names[-2] = models_names[-2], models_names[idx]
+        idx = models_names.index('Random')
+        models_names[idx], models_names[-3] = models_names[-3], models_names[idx]
+
+
+    ### For plots over t
+    label_over_t = {model_name: [] for model_name in models_names}
+    max_time = {model_name: 0 for model_name in models_names}
+
+    sketched_dim = list(np.arange(5, 205, 5))
+    sketched_dim_copy = sketched_dim.copy()
+
+    for model_name in models_names:
+        ##### Models that doesn't change with parameter m or k
+        if model_name in ['Random', 'LinUCB', 'ConfidenceBall1']:
+            try: 
+                PATH_ =  f'{PATH}{model_name}/json/'
+                best_file = sorted(gb.glob(PATH_ + '*.json'),  key=numerical_sort)[0]
+                f = open(best_file)
+                data = json.load(f)
+                data = data['results']
+
+
+                # For plotting over t
+                label_over_t[model_name] = data[model_name]['label']
+                time_cpu = np.array(data[model_name]['time_cpu_mean'])
+                time_cpu = time_cpu[~np.isnan(time_cpu)]
+                max_time[model_name] = time_cpu[-1]
+
+
+                f.close()
+            except Exception as e:
+                print(model_name, e)
+                pass
+        ###### Other models
+        else:
+            for new_dim in sketched_dim_copy:
+                try:
+                    PATH_ =  f'{PATH}{model_name}/{new_dim}/json/'
+                    best_file = sorted(gb.glob(PATH_ + '*.json'),  key=numerical_sort)[0]
+                    f = open(best_file)
+                    data = json.load(f)
+                    data = data['results']
+
+                    ### For plotting over m
+                    model_label = data[model_name]['label']
+                    time_cpu = np.array(data[model_name]['time_cpu_mean'])
+
+                    corresponding_dim = k if model_name in ['CBRAP', 'ConfidenceBall1_FJLT'] else m
+                    if new_dim == corresponding_dim:
+                        label_over_t[model_name] = model_label
+                        max_time[model_name] = time_cpu[-1]
+                        print('Time at the end of ', model_name, time_cpu[-1])
+
+                    f.close()
+                except Exception as e:
+                    if new_dim in sketched_dim:
+                        sketched_dim.remove(new_dim)
+
+    dict_time = {'time': max_time}
+    return dict_time
+
+
+
+def plot_time_test(results, PATH='./'):
+    """
+        Bar plot of time models grouped together and datasets differentiated by color shade
+    """
+
+    datasets = list(results.keys())  
+    models_dataset = [list(results[dataset]['time'].keys()) for dataset in datasets]
+    models = reduce(np.intersect1d, models_dataset)  # Only models common to all datasets
+    
+
+    size = 0.08 
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    res = {}
+    for dataset in datasets:
+        res[dataset] = {model: results[dataset]['time'].get(model, 0) for model in models}
+    model_idx = np.arange(len(models))
+    spc_idx = np.array([i * size for i in range(len(datasets))])
+
+    # Plot bars for each model
+    for i, model in enumerate(models):
+        for j, dataset in enumerate(datasets):
+            values = res[dataset][model] if model in res[dataset] else 0
+            x = model_idx[i] + spc_idx[j]
+            ax.bar(x, values, size, label=f'{model}_{dataset}', alpha=((j+1)/2), color=colors[model])
+
+    ax.set(xticks=model_idx + size * (len(datasets) / 2), xticklabels=models)
+    ax.set_ylabel("CPU time (sec)")
+    ax.set_yscale("log")
+    ax.set_title(f"CPU time")
+    ax.grid(linestyle='--', linewidth=0.5)
+    ax.legend( loc='upper center', fancybox=True, shadow=True)
+
+    # Save the plot to file
+    fig.savefig(PATH + 'CPU_time_test.pdf', format='pdf')
