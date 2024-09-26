@@ -1161,7 +1161,7 @@ def plot_memory_test(results, PATH='./', init=False):
     ax.set_yscale("log")
     ax.set_title(f"Peak of memory allocation {title}")
     ax.grid(linestyle='--', linewidth=0.5)
-    ax.legend( loc='upper center', fancybox=True, shadow=True, ncol=4)
+    ax.legend( loc='upper center', fancybox=True, shadow=True, ncol=3)
 
     # Save the plot to file
     fig.savefig(PATH + title_file + '_memory_test.pdf', format='pdf')
