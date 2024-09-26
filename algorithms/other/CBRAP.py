@@ -5,10 +5,10 @@ from algorithms.baseline.LinearRegression import *
 class LinearRegression_CBRAP(LinearRegression):
     def __init__(self, theta, lam=0.0001, sigma=0.1, delta=0.01, 
                  scale=0.01, action_set=None, seed=48,
-                 k=10, nb_samples=1000, seed_proj=1):
+                 k=10, nb_samples=1000, seed_proj=1, loop=False,):
         """
         """
-        super().__init__(theta, lam, sigma, delta, scale, action_set, seed)
+        super().__init__(theta, lam, sigma, delta, scale, action_set, seed, loop)
         self.nb_samples = nb_samples # Samples L2 Ball
         self.seed = seed * seed_proj
         # Params for generating embedding matrix
@@ -89,24 +89,15 @@ class CBRAP(LinearRegression_CBRAP):
         """
         beta = self.scale * ((self.sigma * np.sqrt(self.d * np.log10((1 + self.t) / self.delta))) + np.sqrt(self.lam) + 1)
         # Compute UCB for each action
-        A_Theta = self.action_set_proj @ self.theta_est
-        # Line below more efficient than : np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
-        A_Vinv_A = np.einsum('ij,ij->i', self.action_set_proj,  self.action_set_proj @ self.Vinv.T)  # get diagonal of (A @ Vinv @ A^T) Of size n 
-
-        sqrt_A_Vinv_A = np.sqrt(A_Vinv_A)  
-        ucb_values = A_Theta + beta * sqrt_A_Vinv_A
-
-        # find the maximum UCB and corresponding index
-        ucb_max_idx = np.argmax(ucb_values)
-        ucb_max = ucb_values[ucb_max_idx]
+        ## The einsum part here is equivalent to np.sum(self.action_set_proj * (self.action_set_proj @ self.Vinv.T), axis=1) --> both are more efficient than np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
+        ucb_values = (self.action_set_proj @ self.theta_est) + (beta * np.sqrt(np.einsum('ij,ij->i', self.action_set_proj,  self.action_set_proj @ self.Vinv.T))) 
+        self.selected_action_idx = np.argmax(ucb_values)
 
         # Rretrieve the corresponding action and projection
-        a_proj_max = self.action_set_proj[ucb_max_idx]
-        a_max = self.action_set[ucb_max_idx]
-        self.selected_action_idx = ucb_max_idx
+        a_proj_max = self.action_set_proj[self.selected_action_idx ]
+        a_max = self.action_set[self.selected_action_idx ]
         return a_proj_max, a_max
 
     def recommend(self):
-        a = self.recommend_matmul()
-        # a = self.recommend_loop()
+        a = self.recommend_loop() if self.loop else self.recommend_matmul()
         return a

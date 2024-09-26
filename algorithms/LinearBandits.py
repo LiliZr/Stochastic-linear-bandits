@@ -17,7 +17,7 @@ from utils.utils import *
 
 class LinearBandit():
     def __init__(self, theta=None, lam=0.01, sigma=0., delta=0.01, 
-                 scale=0.001, action_set=None, seed=48):
+                 scale=0.001, action_set=None, seed=48, loop=False):
         """
             theta: True parameter to estimate
             lam: Regularization parameter λ used in regression
@@ -43,6 +43,7 @@ class LinearBandit():
         self.max_r, self.min_r = None, None
         self.contextual = False
         self.contextual_arms_rewards = None
+        self.loop = loop
 
         # If an action set is given 
         if action_set is not None:

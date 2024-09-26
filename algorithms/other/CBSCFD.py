@@ -2,11 +2,11 @@ from algorithms.baseline.LinearRegression import *
 
 class LinearRegression_CBSCFD(LinearRegression):
     def __init__(self, theta, lam=0.0001, sigma=0.1, delta=0.01, 
-                 scale=0.01, action_set=None, seed=48,
+                 scale=0.01, action_set=None, seed=48, loop=False,
                  m=15):
         """
         """
-        super().__init__(theta, lam, sigma, delta, scale, action_set, seed)
+        super().__init__(theta, lam, sigma, delta, scale, action_set, seed, loop)
         self.m = m  
         self.lam = lam
         print(f'- CBSCFD... m = {self.m}, {lam}, {scale}')
@@ -108,34 +108,31 @@ class CBSCFD(LinearRegression_CBSCFD):
                 + np.sqrt(self.alpha))
             
 
-        Vinv_A = np.zeros(self.action_set.shape)                            # (n, d)
-        H_Z_A_T = np.zeros((self.Z.shape[0], self.action_set.shape[0]))     # (m, n)
-        # Compute intermediate results
+        sqrt_A_Vinv_A = np.zeros(self.action_set.shape)                            # (n, d)
+        H_Z_A_T = np.zeros((self.Z.shape[0], self.action_set.shape[0]))       # (m, n)
+        # Compute Vinv A
         np.matmul(self.Z, self.action_set.T, out = H_Z_A_T)
         np.matmul(self.H, H_Z_A_T, out = H_Z_A_T)
-        np.matmul(H_Z_A_T.T, self.Z, out=Vinv_A)
-        np.subtract(self.action_set, Vinv_A, out = Vinv_A )
-        Vinv_A *= (1 / self.alpha )
-
+        np.matmul(H_Z_A_T.T, self.Z, out=sqrt_A_Vinv_A)
+        np.subtract(self.action_set, sqrt_A_Vinv_A, out = sqrt_A_Vinv_A )
+        sqrt_A_Vinv_A *= (1 / self.alpha )
+        # Compute A  @ Vinv  @ A.T
+        ## The einsum part or np.sum(self.action_set * (self.action_set @ self.Vinv.T), axis=1) --> both are more efficient than np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
+        sqrt_A_Vinv_A *= self.action_set
+        sqrt_A_Vinv_A = np.sum(sqrt_A_Vinv_A, axis=1)
+        sqrt_A_Vinv_A = np.sqrt(sqrt_A_Vinv_A)
+        sqrt_A_Vinv_A *= beta
         # Compute UCB values
-        # Line below more efficient than : np.diagonal (self.action_set @ Vinv @ self.action_set^T)            
-        A_Vinv_A = np.einsum('ij,ij->i', self.action_set, Vinv_A)          # (n) : Diagonal of (A @ Vinv_A.T)
-        A_Theta = self.action_set @ self.theta_est                         # (n)
-        sqrt_A_Vinv_A = np.sqrt(A_Vinv_A)   
-        ucb_values = A_Theta + (beta * sqrt_A_Vinv_A)  
+        ucb_values = self.action_set @ self.theta_est                             # (n)
+        ucb_values += sqrt_A_Vinv_A
 
         # find the maximum UCB value and corresponding index
-        ucb_values = np.round(ucb_values, decimals=5)
-        ucb_max_idx = np.argmax(ucb_values)
-        ucb_max = ucb_values[ucb_max_idx]
+        self.selected_action_idx = np.argmax(ucb_values)
 
         # retrieve the corresponding action
-        a_max = self.action_set[ucb_max_idx]
-        self.selected_action_idx = ucb_max_idx
-
+        a_max = self.action_set[self.selected_action_idx]
         return a_max
     
     def recommend(self):
-        a = self.recommend_matmul()
-        # a = self.recommend_loop()
+        a = self.recommend_loop() if self.loop else self.recommend_matmul()
         return a

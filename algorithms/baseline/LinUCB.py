@@ -43,15 +43,11 @@ class LinUCB(LinearRegression):
                                (self.d * np.log10(1 + ((self.t * self.L**2)/(self.lam*self.d)))))) ) * self.scale
 
         # Compute intermediate results
-        A_Theta = self.action_set @ self.theta_est
-        A_Vinv_A = np.einsum('ij,ij->i', self.action_set, self.action_set @ self.Vinv.T)  
-        sqrt_A_V_A = np.sqrt(A_Vinv_A)     
+        ucb_values = self.action_set @ self.theta_est    
 
         # Compute UCB values for all actions and find maximum
-        ucb_values = A_Theta + beta_sqrt * sqrt_A_V_A  
-        ucb_values = np.round(ucb_values, decimals=5)
+        ucb_values += beta_sqrt * np.sqrt(np.einsum('ij,ij->i', self.action_set, self.action_set @ self.Vinv.T) )  
         ucb_max_idx = np.argmax(ucb_values)
-        ucb_max = ucb_values[ucb_max_idx]
 
         a_max = self.action_set[ucb_max_idx]
         self.selected_action_idx = ucb_max_idx
@@ -59,6 +55,5 @@ class LinUCB(LinearRegression):
         return a_max
 
     def recommend(self):
-        a = self.recommend_matmul()
-        # a = self.recommend_loop()
+        a = self.recommend_loop() if self.loop else self.recommend_matmul()
         return a
