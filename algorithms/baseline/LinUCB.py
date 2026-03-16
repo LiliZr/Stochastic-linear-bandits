@@ -21,16 +21,16 @@ class LinUCB(LinearRegression):
                                (self.d * np.log10(1 + ((self.t * self.L**2)/(self.lam*self.d)))))) ) * self.scale
         ##### Finite set case
         if self.finite_set:
-            # Compute UCB for each action
-            ucb_max = float('-inf')
-            a_max = self.action_set[0]
-            self.selected_action_idx = 0
-            for idx, a in enumerate(self.action_set):
-                ucb = (a @ self.theta_est) + (beta_sqrt * np.sqrt(a @ (self.Vinv @ a)))
-                if ucb > ucb_max:
-                    ucb_max = ucb
-                    a_max = a
-                    self.selected_action_idx = idx  
+            # Compute intermediate results
+            ucb_values = self.action_set @ self.theta_est    
+
+            # Compute UCB values for all actions and find maximum
+            ucb_values += beta_sqrt * np.sqrt(np.einsum('ij,ij->i', self.action_set, self.action_set @ self.Vinv.T) )  
+            ucb_max_idx = np.argmax(ucb_values)
+
+            a_max = self.action_set[ucb_max_idx]
+            self.selected_action_idx = ucb_max_idx
+    
             return a_max
     
         ##### L2 unit ball case

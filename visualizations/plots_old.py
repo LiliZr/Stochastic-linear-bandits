@@ -3,6 +3,7 @@ from matplotlib.legend_handler import HandlerErrorbar
 import numpy as np
 import json
 import os
+import sns
 import glob as gb
 import re
 import matplotlib.pyplot as plt
@@ -61,7 +62,7 @@ hatchs = {'ConfidenceBall1_FJLT': '//',
 
 list_models_to_not_plot_s = {'MNIST': ['Random',],
                            'Random': ['Random', ],
-                           'Steam': ['Random', 'LinUCB', 'ConfidenceBall1','' ],
+                           'Steam': ['Random',],# 'LinUCB', 'ConfidenceBall1','' ],
                            'Movielens': ['Random'   ],
                            'Amazon': ['Random'],
                            'Yahoo': ['Random']}
@@ -102,11 +103,12 @@ def label_refine(label, keeponlydim = False):
     else:
         if len(label_splitted) > 2:
             label = '_'.join(label_splitted[:-1])
-        elif len(label_splitted) == 2 and 'FJLT' in label_splitted:
+        elif len(label_splitted) == 2:
             label = '_'.join(label_splitted)
         else:
             label = label_splitted[0]
     return label
+
 
 def path_to_results(dataset, sub_PATH):
     """
@@ -289,12 +291,14 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
         Plot best results in terms of cumulative regret (smaller value), cpu and wall time for 
       each model given a dataset and sketch/projection dimesions
     """
+    print(f"____________________{dataset}__________________________")
     # Get models to plot/ not to plot
     list_models_to_not_plot = list_models_to_not_plot_s[dataset]
     
     # Possible values of k and m
     sketched_dim = list(np.arange(10, 205, 10))
     sketched_dim_copy = sketched_dim.copy()
+    markers_list = ['o', 's', 'D', '^', 'v', 'p', '*', 'H', '+', 'x']
 
     # Get list of models in specified path
     models_names = [f for f in os.listdir(PATH) if os.path.isdir(os.path.join(PATH, f))]
@@ -325,12 +329,12 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
     # Scatter plot
     scatter_time = {model_name:{'x':[],
-                           'y':[],
-                           'yerr':[]}
+                                'y':[],
+                                'yerr':[]}
                for model_name in models_names}
     scatter_mem = {model_name:{'x':[],
-                           'y':[],
-                           'yerr':[]}
+                               'y':[],
+                               'yerr':[]}
                for model_name in models_names}
 
     # scatter_dims = {'CBRAP':[200, 100], 'ConfidenceBall1_FJLT':[200, 100],
@@ -392,10 +396,9 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
         ###### Other models
         else:
             # Figure 3: plot for each algo with multiple values of k and m
-            fig_dim, (ax1_dim, ax3_dim) = plt.subplots(1, 2, figsize=(11, 5))
+            fig_dim, (ax1_dim, ax2_dim, ax3_dim) = plt.subplots(1, 3, figsize=(17, 5))
 
             box_plot_dim, models_box_plot_dim = [], []
-            shapes = ['x', 'p', 's', '*', 'o', 'd']
             i = 0
             for new_dim in sketched_dim_copy:
                 try:
@@ -420,14 +423,14 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
                     # Figure 3
                     ## Regret mean plot
-                    model_label = label_refine(model_label, keeponlydim=True)
-                    ax1_dim.plot(np.arange(T), regret_mean_model, label=model_label, marker=shapes[i], markersize=8, markevery=int(spacing[model_name]*T/10), alpha=0.9)
+                    ax1_dim.plot(np.arange(T), regret_mean_model, label=model_label, marker=markers_list[i], markersize=8, markevery=int(spacing[model_name]*T/10), alpha=0.9,)
+                    i += 1
                     ## Save for boxplot
                     if 'regret' in data[model_name].keys():
                         box_plot_dim.append(np.array(data[model_name]['regret'])[:,-1])
                     ## Cpu time
-                    lines+=ax3_dim.plot(np.arange(T), time_cpu_model,marker=shapes[i], label=model_label, markersize=8, markevery=int(spacing[model_name]*T/10), alpha=0.9)
-                    i+=1
+                    model_label = label_refine(model_label, keeponlydim=True)
+                    lines+=ax3_dim.plot(np.arange(T), time_cpu_model, label=model_label, marker=markers_list[i], markersize=8, markevery=int(spacing[model_name]*T/10), alpha=0.9)
                     try:
                         models_box_plot_dim.append(f"m={data[model_name]['params']['m']}")
                     except:
@@ -474,11 +477,10 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
             # Figure 2
             if box_plot_dim != [] and len(box_plot_dim) == len(models_box_plot_dim):
+                size_labels_axis = 20
+                size_ticks = 18
+                size_legend = 21
                 size_title = 20
-
-                size_labels_axis = 24
-                size_ticks = 23
-                size_legend = 22
                 ## regret
                 ax1_dim.set_title(f'Cumulative regret over iterations', fontsize=size_title)
                 ax1_dim.set_xlabel('T', fontsize=size_labels_axis)
@@ -490,13 +492,13 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
                 # ax1_dim.legend( fontsize=15)  
     
                 ## Boxplot
-                # ax2_dim.boxplot(box_plot_dim, showfliers=True)
-                # ax2_dim.set_xticklabels(models_box_plot_dim)
-                # ax2_dim.tick_params(axis='both', which='major', labelsize=size_ticks)
-                # ax2_dim.set_xlabel('Models', fontsize=size_labels_axis)
-                # ax2_dim.set_ylabel('Cumulative regret', fontsize=size_labels_axis)
-                # ax2_dim.set_title('Cumulative regret at the end of iterations', fontsize=size_title)
-                # ax2_dim.grid(linestyle = '--', linewidth = 0.5)
+                ax2_dim.boxplot(box_plot_dim, showfliers=True)
+                ax2_dim.set_xticklabels(models_box_plot_dim)
+                ax2_dim.tick_params(axis='both', which='major', labelsize=size_ticks)
+                ax2_dim.set_xlabel('Models', fontsize=size_labels_axis)
+                ax2_dim.set_ylabel('Cumulative regret', fontsize=size_labels_axis)
+                ax2_dim.set_title('Cumulative regret at the end of iterations', fontsize=size_title)
+                ax2_dim.grid(linestyle = '--', linewidth = 0.5)
 
                 ## cpu time
                 ax3_dim.set_title(f'CPU Time', fontsize=size_title)
@@ -509,8 +511,8 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
                 labels = [l.get_label() for l in lines ]
                 fig_dim.tight_layout(pad=1)
-                fig_dim.subplots_adjust(top=0.7)
-                ncol =3# len(labels)
+                fig_dim.subplots_adjust(top=0.8)
+                ncol = len(labels)
                 # if model_name == 'ConfidenceBall1_FJLT':
                 #     ncol /= 2 
                 
@@ -609,24 +611,22 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
     labels = [l.get_label() for l in lines ]
     ncol = 3 if len(models_names) >= 6 else 2
     fig_all.tight_layout(pad=1)
-    fig_all.legend(lines, labels, ncol=ncol, fontsize=size_legend, loc='upper center', fancybox=True, shadow=True,)
+    # fig_all.legend(lines, labels, ncol=ncol, fontsize=size_legend, loc='upper center', fancybox=True, shadow=True,)
     # fig_all.suptitle(title, fontsize=17)
     fig_all.subplots_adjust(top=0.75)
     fig_all.savefig(PATH + 'regret_time.pdf', format="pdf")
 
 
     #### Figure 3: Scatter
-    fig_scatter, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,5))
+    fig_scatter, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
     max_y_lim, min_y_lim = 0, 0
     lines = []
     # Create a scatter plot with error bars
     for model_name in models_names:
         try:
-            ax1.errorbar(**scatter_time[model_name], fmt='o', color=colors[model_name], ecolor=colors[model_name], alpha=0.6, capsize=7,  markersize=9, elinewidth=3,label=model_name)
+            ax1.errorbar(**scatter_time[model_name], fmt=markers[model_name], color=colors[model_name], ecolor=colors[model_name], alpha=0.7, capsize=7,  markersize=10, elinewidth=3,label=label_refine(model_name))
             handles, labels = ax1.get_legend_handles_labels()
-            ax2.errorbar(**scatter_mem[model_name], fmt='o', color=colors[model_name], ecolor=colors[model_name], alpha=0.6, capsize=7,  markersize=9, elinewidth=3,label=model_name)[0]
-            # max_y_lim = max(scatter_time[model_name]['yerr']) + 150 if  max(scatter_time[model_name]['yerr']) + 150 > max_y_lim else max_y_lim
-            # min_y_lim = min(scatter_time[model_name]['yerr']) - 150 if  min(scatter_time[model_name]['yerr']) - 150 < min_y_lim else min_y_lim
+            ax2.errorbar(**scatter_mem[model_name], fmt=markers[model_name], color=colors[model_name], ecolor=colors[model_name], alpha=0.7, capsize=7,  markersize=10, elinewidth=3,label=label_refine(model_name))[0]
         except Exception as e:
             pass
     # labels = [l.get_label() for l in lines]
@@ -640,8 +640,13 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
 
     ax2.set_xlabel('Peak Memory (MiB)', fontsize=23)
     # ax2.set_ylabel('Cumulative regret', fontsize=23,)
+    # ax2.set_yticks([])
+
     ax2.set_xscale('log')
-    ax2.tick_params(axis='both', which='major', labelsize=21)
+    # ax2.tick_params(axis='both', which='major', left=False, right=False, labelsize=21)
+    # ax2.tick_params(axis='y', which='both', left=False, right=False, labelsize=21)
+    ax2.tick_params(axis='y', which='both', labelleft=False)
+
     ax2.grid(linestyle = '--', linewidth = 0.5)
     # ax.axis(ymin=min_y_lim, ymax=max_y_lim)
     # ax.set_title(f'{dataset} - Performance comparison for {x_param}')
@@ -659,7 +664,89 @@ def plot_best_results(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=Fal
     fig_scatter.subplots_adjust(top=0.65, )
 
     fig_scatter.savefig(PATH + 'scatters.pdf', format="pdf")
+    
+    
+    ##################### Heatmap 
+    times, mems, regret = [], [], []
+    for model_name in models_names:
+        times.append(scatter_time[model_name]['x'])
+        mems.append(scatter_mem[model_name]['x'])
+        regret.append(scatter_time[model_name]['y'])
 
+    T_, M_ = np.meshgrid(times, mems)
+
+
+    # Créez une figure avec une seule heatmap
+    # fig__, ax = plt.subplots(figsize=(10, 7))
+
+    # # Tracez la heatmap
+    # # print(sns.__version__)
+    # # sns.heatmap(regret, xticklabels=times, yticklabels=mems, cmap='viridis', cbar_kws={'label': 'Regret'}, ax=ax)
+
+    # # Ajouter des labels aux axes
+    # ax.set_xlabel('CPU Time (sec)', fontsize=15)
+    # ax.set_ylabel('Memory Usage (MiB)', fontsize=15)
+    # ax.set_title('Heatmap: Regret vs Temps et Mémoire', fontsize=16)
+    # fig__.savefig(PATH + '__test__.pdf', format="pdf")
+
+
+
+
+    ###############################
+
+
+    # Création de la figure et de l'axe 3D
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+    
+    positions_x = []
+    positions_y = []
+    regrets = []
+    errors_z = []
+
+
+    for model_name in models_names:
+        try:
+            time_x = scatter_time[model_name]['x']
+            mem_x = scatter_mem[model_name]['x']
+            regret = scatter_time[model_name]['y']  
+            regret_err = scatter_time[model_name]['yerr']
+
+            for t, m, r, r_er in zip(time_x, mem_x, regret, regret_err):
+                positions_x.append(t)  
+                positions_y.append(m)  
+                regrets.append(r)      
+                errors_z.append(r_er)    
+
+        except Exception as e:
+            pass
+
+    # Convertir les positions en numpy arrays
+    positions_x = np.array(positions_x)
+    positions_y = np.array(positions_y)
+    regrets = np.array(regrets)
+    errors_z = np.array(errors_z)
+
+    # Largeur des barres
+    dx = np.ones_like(positions_x) * 0.2  # Largeur des barres sur l'axe X
+    dy = np.ones_like(positions_y) * 0.2  # Largeur des barres sur l'axe Y
+    dz = regrets  # Hauteur des barres basée sur les regrets
+
+    # Affichage des barres 3D
+    ax.bar3d(positions_x, positions_y, np.zeros_like(regrets), dx, dy, dz, color='b', alpha=0.7)
+
+    # Ajouter des erreurs d'axe X et Y
+    ax.errorbar(positions_x, positions_y, regrets, zerr=errors_z, fmt='o', color='r', alpha=0.7, capsize=5)
+
+    # Ajouter des étiquettes
+    ax.set_xlabel('Temps d\'exécution')
+    ax.set_ylabel('Taux de mémoire')
+    ax.set_zlabel('Regret')
+
+    # Afficher la légende
+    # Nous pouvons également ajouter des légendes ou des étiquettes supplémentaires ici
+    # fig.savefig(PATH + 'test.pdf', format="pdf")
 
 
 
@@ -884,10 +971,18 @@ def plot_over_params(PATH, dataset, params=['scale', 'lam'], k=projected_dim, m=
 
 
 
-
     sketched_dim = list(np.arange(5, 105, 5))
-    lam_s = [2*(10**i) for i in range(-11, 8)]
-    scale_s = [(10**i) for i in range(-6, 5)] 
+    lam_s = [2*(10**i) for i in range(-11, 8)] + [3e-9, 2.5e-9,  1.5e-9, 1e-9, 
+         3e-7, 2.5e-7,  1.5e-7, 1e-7, 
+         3e-5, 2.5e-5, 1.5e-5, 1e-5, 
+         0.001, 0.01, 0.05, 
+         0.1, 0.15, 0.25, 0.3 ]
+
+    scale_s = [(10**i) for i in range(-6, 5)] + [0.00002, 0.00005, 0.00008,
+           0.0002, 0.0005, 0.0008, 
+           0.000002, 0.000005, 0.00008,
+           0.02, 0.05, 0.08, 
+           0.2, 0.3]
 
     fig, axs = plt.subplots(1, 2, figsize=(9, 5))
     for i, param in enumerate(params):
@@ -987,6 +1082,7 @@ def plot_over_params(PATH, dataset, params=['scale', 'lam'], k=projected_dim, m=
                         T, d, sigma, nb_actions = data['T'], data['d'], data['sigma'], data['nb_actions']
                         best_params = data['results'][model_name]['params']
                         f.close()
+                        values_stored = set()
                         for file in files:
                             f = open(file)
                             data_other = json.load(f)
@@ -996,8 +1092,8 @@ def plot_over_params(PATH, dataset, params=['scale', 'lam'], k=projected_dim, m=
                                 if param_name != param:
                                     load_file.append(best_params[param_name] == data_other['results'][model_name]['params'][param_name])                        
                             load_file = all(load_file)
-                            if load_file:
-                                
+                            if load_file and float(data['params'][param]) not in  values_stored:
+                                values_stored.add(float(data['params'][param]))
                                 results[model_name][float(data['params'][param])]['regret_mean'] = np.array(data['regret_mean'])[-1]
                                 results[model_name][float(data['params'][param])]['regret_std'] = np.array(data['regret_std'])[-1]
                                 results[model_name][float(data['params'][param])]['reward_mean'] = np.array(data['reward_mean'])[-1]
@@ -1075,7 +1171,7 @@ def plot_over_params(PATH, dataset, params=['scale', 'lam'], k=projected_dim, m=
         # ax1.set_ylim(bottom=1)
     size_legend = 24
     labels = [l.get_label() for l in lines]
-    fig.legend(lines, labels, ncol=2, fontsize=size_legend, loc='upper center', fancybox=True, shadow=True,)
+    # fig.legend(lines, labels, ncol=2, fontsize=size_legend, loc='upper center', fancybox=True, shadow=True,)
     fig.tight_layout(pad=0.5)
     fig.subplots_adjust(top=0.7)
     fig.savefig(PATH + f'Plot_over_params.pdf', format="pdf")
@@ -1192,7 +1288,7 @@ def plot_memory(results, PATH='./', init=False):
         x = [ i + spc_idx[list(sorted_res[dataset].keys()).index(model)]  for i, dataset in enumerate(datasets)]
         values = [sorted_res[dataset][model] for dataset in sorted_res.keys()]
         print(model, values)
-        ax.bar(x, values, size, label = label_refine(model, keeponlydim=False), alpha=0.75, color=colors[model], hatch=hatchs[model])
+        ax.bar(x, values, size, label = model, alpha=0.75, color=colors[model], hatch=hatchs[model])
 
 
     
@@ -1426,8 +1522,8 @@ def plot_ctr(PATH, dataset, k=projected_dim, m=sketch_dim, box_plot=False):
 
     labels = [l.get_label() for l in lines ]
     ncol = 3 if len(models_names) == 6 else 2
-    fig_all.legend(lines, labels, fancybox=True, shadow=True, fontsize=size_legend, ncol=ncol, loc='upper center')
-    fig_all.tight_layout(pad=1)
-    fig_all.subplots_adjust(top=0.75)
+    # fig_all.legend(lines, labels, fancybox=True, shadow=True, fontsize=size_legend, ncol=ncol, loc='upper center')
+    fig_all.tight_layout(pad=1.75)
+    fig_all.subplots_adjust(top=0.7)
     # fig_all.suptitle('Evolution of Click Through Rate', fontsize=14)
     fig_all.savefig(PATH + 'plot_ctr.pdf', format="pdf")

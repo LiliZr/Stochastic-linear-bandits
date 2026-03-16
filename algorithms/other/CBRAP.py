@@ -65,16 +65,16 @@ class CBRAP(LinearRegression_CBRAP):
         CBRAP class recommending over a finite set
     """
     def recommend(self):
+        """
+            Implementation using matrix multiplication with einsum 
+        """
         beta = self.scale * ((self.sigma * np.sqrt(self.d * np.log10((1 + self.t) / self.delta))) + np.sqrt(self.lam) + 1)
         # Compute UCB for each action
-        ucb_max = float('-inf')
-        a_max = None
-        a_proj_max = None
-        for idx, (a_proj, a) in enumerate(zip(self.action_set_proj, self.action_set)):
-            ucb = (a_proj @ self.theta_est) + (beta * np.sqrt(a_proj @ (self.Vinv @ a_proj)))
-            if ucb > ucb_max:
-                ucb_max = ucb
-                a_proj_max = a_proj
-                a_max = a   
-                self.selected_action_idx = idx 
+        ## The einsum part here is equivalent to np.sum(self.action_set_proj * (self.action_set_proj @ self.Vinv.T), axis=1) --> both are more efficient than np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
+        ucb_values = (self.action_set_proj @ self.theta_est) + (beta * np.sqrt(np.einsum('ij,ij->i', self.action_set_proj,  self.action_set_proj @ self.Vinv.T))) 
+        self.selected_action_idx = np.argmax(ucb_values)
+
+        # Rretrieve the corresponding action and projection
+        a_proj_max = self.action_set_proj[self.selected_action_idx ]
+        a_max = self.action_set[self.selected_action_idx ]
         return a_proj_max, a_max

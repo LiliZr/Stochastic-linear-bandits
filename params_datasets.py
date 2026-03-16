@@ -7,11 +7,15 @@ from visualizations.plots import *
 
 
 # PATH to results 
-PATH = './results/parameters/'
+PATH = './results/simple/times_matmul/'
 
 # Datasets and models to test
-datasets = ['Amazon', 'Steam']
-models_to_test = [Random, ConfidenceBall1_FJLT]
+datasets = ['MNIST', 'Yahoo', 'Movielens', 'Amazon', 'Steam', 'Random']
+datasets = ['Random']
+
+# models_to_test = [CBRAP, CBSCFD, SOFUL_2m, LinUCB]
+models_to_test = [ LinUCB]
+
 
 
 # Hyperparameters of each model
@@ -26,12 +30,13 @@ params_models = {'ConfidenceBall1': ['scale', 'lam'],
                     'Random':[]
                     }
 
-sketch_dim = [30]
-projected_dim = [200]
+sketch_dim = [10,  20, 30, 40, 50]
+projected_dim = [10,  30, 50, 70, 90, 200]
 
-scale_s = [10**i for i in range(-2, 0)]
-lam_s = [2*10**i for i in range(-11, -2, 2)]
-
+# scale_s = [10**i for i in range(-2, 0)]
+# lam_s = [2*10**i for i in range(-11, -2, 2)]
+scale_s = [0.01]
+lam_s = [2e-7]
 
 
 params_values = {
@@ -49,8 +54,8 @@ if __name__ == "__main__":
     # Max iterations
     T = 2500
     # Number of runs (To approximate in expectation) and seeds
-    nb_runs = 50
-    loop_RP = 4
+    nb_runs = 1
+    loop_RP = 1
     seeds = np.arange(nb_runs)
     seed_data = 12
 

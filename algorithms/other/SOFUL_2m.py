@@ -78,15 +78,27 @@ class SOFUL_2m(LinearRegression_SOFUL_2m):
         
 
 
-        # Compute UCB for each action
-        ucb_max = float('-inf')
-        a_max = self.action_set[0]
-        self.selected_action_idx = 0
-        for idx, a in enumerate(self.action_set):
-            Vinv_a =  (1/self.lam) * (a - (self.S.T @ (self.H @ (self.S @ a))))
-            ucb = (a @ self.theta_est) + (beta * np.sqrt(a @ Vinv_a))
-            if ucb > ucb_max:
-                ucb_max = ucb
-                a_max = a
-                self.selected_action_idx = idx
+        sqrt_A_Vinv_A = np.zeros(self.action_set.shape)                            # (n, d)
+        H_Z_A_T = np.zeros((self.S.shape[0], self.action_set.shape[0]))       # (m, n)
+        # Compute Vinv A
+        np.matmul(self.S, self.action_set.T, out = H_Z_A_T)
+        np.matmul(self.H, H_Z_A_T, out = H_Z_A_T)
+        np.matmul(H_Z_A_T.T, self.S, out=sqrt_A_Vinv_A)
+        np.subtract(self.action_set, sqrt_A_Vinv_A, out = sqrt_A_Vinv_A )
+        sqrt_A_Vinv_A *= (1 / self.lam )
+        # Compute A  @ Vinv  @ A.T
+        ## The einsum part or np.sum(self.action_set * (self.action_set @ self.Vinv.T), axis=1) --> both are more efficient than np.diagonal (self.action_set @ Vinv @ self.action_set^T)             
+        sqrt_A_Vinv_A *= self.action_set
+        sqrt_A_Vinv_A = np.sum(sqrt_A_Vinv_A, axis=1)
+        sqrt_A_Vinv_A = np.sqrt(sqrt_A_Vinv_A)
+        sqrt_A_Vinv_A *= beta
+        # Compute UCB values
+        ucb_values = self.action_set @ self.theta_est                             # (n)
+        ucb_values += sqrt_A_Vinv_A
+
+        # find the maximum UCB value and corresponding index
+        self.selected_action_idx = np.argmax(ucb_values)
+
+        # retrieve the corresponding action
+        a_max = self.action_set[self.selected_action_idx]
         return a_max
